@@ -24,6 +24,8 @@ namespace NZWalks.API.Controllers
         [Route("Register")]
         public async Task<IActionResult> Register([FromBody] RegiesterRequestDto regiesterRequestDto)
         {
+            // TODO: apply mapping from RegiesterRequestDto to IdentityUser using AutoMapper
+
             var identityUser = new IdentityUser
             {
                 UserName = regiesterRequestDto.Username,

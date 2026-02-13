@@ -1,0 +1,45 @@
+﻿using NZWalks.API.Data;
+using NZWalks.API.Models.Domain;
+
+namespace NZWalks.API.Repositories
+{
+    public class LocalImageRepository : IImageRepository
+    {
+        private readonly IWebHostEnvironment webHostEnvironment;
+        private readonly IHttpContextAccessor httpContextAccessor;
+        private readonly NZWalksDbContext dbContext;
+
+        public LocalImageRepository(IWebHostEnvironment webHostEnvironment, IHttpContextAccessor httpContextAccessor, NZWalksDbContext dbContext)
+        {
+            this.webHostEnvironment = webHostEnvironment;
+            this.httpContextAccessor = httpContextAccessor;
+            this.dbContext = dbContext;
+        }
+
+        public async Task<Image> Upload(Image image)
+        {
+            var localFilePath = Path.Combine(webHostEnvironment.ContentRootPath, "UploadedImages",
+                $"{image.FileName}{image.FileExtension}");
+
+            // Ensure the directory exists. If not, create it
+            // TODO: If exists, add a unique identifier to the file name to avoid overwriting existing files
+            // Upload Image to local path
+            using (var stream = new FileStream(localFilePath, FileMode.Create))
+                await image.File.CopyToAsync(stream);
+
+            // https://localhost:5000/UploadedImages/image.jpg
+            var urlFilePath =
+                $"{httpContextAccessor.HttpContext.Request.Scheme}://" +
+                $"{httpContextAccessor.HttpContext.Request.Host}{httpContextAccessor.HttpContext.Request.PathBase}" +
+                $"/UploadedImages/{image.FileName}{image.FileExtension}";
+
+            image.FilePath = urlFilePath;
+
+            // Add the image to the database
+            await dbContext.Images.AddAsync(image);
+            await dbContext.SaveChangesAsync();
+
+            return image;
+        }
+    }
+}
