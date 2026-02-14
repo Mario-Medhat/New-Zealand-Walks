@@ -8,11 +8,36 @@ using Microsoft.OpenApi;
 using NZWalks.API.Data;
 using NZWalks.API.Mappings;
 using NZWalks.API.Repositories;
+using Serilog;
+using Serilog.Events;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
+var logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File(
+        path: "Logs/InfoLogs/NzWalks_Info_log_.txt",
+        rollingInterval: RollingInterval.Hour,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
+        retainedFileCountLimit: 365 / 2 // keep logs for 6 months
+        )
+    .MinimumLevel.Information()
+    .WriteTo.File(
+        path: "Logs/Errorlogs/NzWalks_Error_log_.txt",
+        rollingInterval: RollingInterval.Hour,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
+        retainedFileCountLimit: 365, // keep logs for 12 months
+        restrictedToMinimumLevel: LogEventLevel.Error // only log error and above (critical)
+    )
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .CreateLogger();
+//.CreateBootstrapLogger();
+
+builder.Logging.ClearProviders();
+builder.Logging.AddSerilog(logger);
 
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();

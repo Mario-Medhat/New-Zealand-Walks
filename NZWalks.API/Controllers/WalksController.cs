@@ -5,6 +5,7 @@ using NZWalks.API.Controllers.CustomActionFilters;
 using NZWalks.API.Models.Domain;
 using NZWalks.API.Models.DTO;
 using NZWalks.API.Repositories;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace NZWalks.API.Controllers
@@ -13,13 +14,16 @@ namespace NZWalks.API.Controllers
     [ApiController]
     public class WalksController : ControllerBase
     {
+        private readonly ILogger<WalksController> logger;
+
         public IWalkRepository walkRepository { get; }
         public IMapper mapper { get; }
 
-        public WalksController(IWalkRepository walkRepository, IMapper mapper)
+        public WalksController(IWalkRepository walkRepository, IMapper mapper, ILogger<WalksController> logger)
         {
             this.walkRepository = walkRepository;
             this.mapper = mapper;
+            this.logger = logger;
         }
 
         // Create Walk
@@ -34,6 +38,7 @@ namespace NZWalks.API.Controllers
             // Pass details to Repository
             await walkRepository.CreateAsync(walkDm);
 
+            logger.LogInformation($"A new walk created. Walk: {JsonSerializer.Serialize(walkDm)}");
             return CreatedAtAction(nameof(GetById), new { id = walkDm.Id }, walkDto);
         }
 
@@ -49,6 +54,8 @@ namespace NZWalks.API.Controllers
             var walksDm = await walkRepository.GetAllAsync(pageNumber, pageSize, filterOn, filterQuery, sortBy, isAscending ?? true);
             // Convert/Map Domain Models to DTOs
             var walksDto = mapper.Map<List<WalkDto>>(walksDm);
+
+            logger.LogInformation($"Returned {walksDto.Count} walks from database. Walks:{JsonSerializer.Serialize(walksDto)}");
             // Return DTOs
             return Ok(walksDto);
         }
@@ -67,6 +74,8 @@ namespace NZWalks.API.Controllers
             }
             // Convert/Map Domain Model to DTO
             var walkDto = mapper.Map<WalkDto>(walkDm);
+
+            logger.LogInformation($"Returned walk with id: {id} from database. Walk: {JsonSerializer.Serialize(walkDto)}");
             // Return DTO
             return Ok(walkDto);
         }
@@ -84,10 +93,12 @@ namespace NZWalks.API.Controllers
             // Check if null
             if (updatedWalkDm == null)
             {
+                logger.LogWarning($"Failed to update walk in database. Walk with id: {id} not found.");
                 return NotFound();
             }
             // Convert/Map Domain Model to DTO
             var updatedWalkDto = mapper.Map<WalkDto>(updatedWalkDm);
+            logger.LogInformation($"Updated walk with id: {id} in database. Updated Walk: {JsonSerializer.Serialize(updatedWalkDto)}");
             // Return Ok response
             return Ok(updatedWalkDto);
         }
@@ -102,10 +113,12 @@ namespace NZWalks.API.Controllers
             // Check if null
             if (walkDm == null)
             {
+                logger.LogWarning($"Failed to update walk in database. Walk with id: {id} not found.");
                 return NotFound();
             }
             // Convert/Map Domain Model to DTO
             var deletedWalkDto = mapper.Map<WalkDto>(walkDm);
+            logger.LogInformation($"Deleted walk with id: {id} from database. Deleted Walk: {JsonSerializer.Serialize(deletedWalkDto)}");
             // Return Ok response
             return Ok(deletedWalkDto);
         }

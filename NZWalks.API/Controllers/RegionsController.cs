@@ -19,11 +19,13 @@ namespace NZWalks.API.Controllers
     {
         IRegionRepository regionRepository;
         private readonly IMapper mapper;
+        private readonly ILogger<RegionsController> logger;
 
-        public RegionsController(IRegionRepository regionRepository, IMapper mapper)
+        public RegionsController(IRegionRepository regionRepository, IMapper mapper, ILogger<RegionsController> logger)
         {
             this.regionRepository = regionRepository;
             this.mapper = mapper;
+            this.logger = logger;
         }
 
         // Get All Regions
@@ -32,14 +34,17 @@ namespace NZWalks.API.Controllers
         [Authorize(Roles = "Reader,Writer")]
         public async Task<IActionResult> GetAll([FromQuery] string? filterOn, [FromQuery] string? filterQuery)
         {
+            logger.LogInformation($"Getting all regions from database with filterOn: {filterOn} and filterQuery: {filterQuery}");
+
             // Get Data from Database - Domain models
             var regionsDM = await regionRepository.GetAllAsync(filterOn, filterQuery);
 
             // Map Domain models to DTOs
-            var regionDTO = mapper.Map<List<RegionDto>>(regionsDM);
-
+            var regionDTOs = mapper.Map<List<RegionDto>>(regionsDM);
+            var json = JsonSerializer.Serialize(regionDTOs);
+            logger.LogInformation($"Returning {regionDTOs.Count} regions to the client.\n Regions returned:\n{json}");
             // Return DTOs
-            return Ok(regionDTO);
+            return Ok(regionDTOs);
         }
 
         [HttpGet]
@@ -51,12 +56,14 @@ namespace NZWalks.API.Controllers
             var regionDm = await regionRepository.GetByIdAsync(id);
             if (regionDm == null)
             {
+                logger.LogInformation($"There is no region with id {id}");
                 return NotFound($"There is no region with id {id}");
             }
 
             //Map Domain models to DTOs
             var regionDto = mapper.Map<RegionDto>(regionDm);
 
+            logger.LogInformation($"Returning region with id {id} to the client.\n Region returned:\n{JsonSerializer.Serialize(regionDto)}");
             // Return DTOs
             return Ok(regionDto);
         }
@@ -74,6 +81,7 @@ namespace NZWalks.API.Controllers
             // Map Domain model back to DTO
             var regionDto = mapper.Map<RegionDto>(regionDm);
 
+            logger.LogInformation($"Region created successfully with id {regionDm.Id}.\n Created Region:\n{JsonSerializer.Serialize(regionDto)}");
             return CreatedAtAction(nameof(GetById), new { id = regionDm.Id }, regionDto);
         }
 
@@ -87,6 +95,7 @@ namespace NZWalks.API.Controllers
 
             if (regionDm == null)
             {
+                logger.LogInformation($"There is no region with id {id}");
                 return NotFound($"There is no region with id {id}");
             }
 
@@ -99,6 +108,7 @@ namespace NZWalks.API.Controllers
                 options: new JsonSerializerOptions { WriteIndented = true }
                 );
 
+            logger.LogInformation($"Region with id {id} has been deleted successfully.\n Deleted Region:\n{regionDtoAsJson}");
             return Ok($"The {regionDm.Name} region has been deleted successfully. \n\nDeleted Region:\n{regionDtoAsJson}");
         }
 
@@ -116,12 +126,14 @@ namespace NZWalks.API.Controllers
 
             if (regionDm == null)
             {
+                logger.LogInformation($"There is no region with id {id}");
                 return NotFound($"There is no region with id {id}");
             }
 
             // Map Domain model back to DTO
             var regionDto = mapper.Map<RegionDto>(regionDm);
 
+            logger.LogInformation($"Region with id {id} has been updated successfully.\n Updated Region:\n{JsonSerializer.Serialize(regionDto)}");
             return Ok(regionDto);
         }
     }

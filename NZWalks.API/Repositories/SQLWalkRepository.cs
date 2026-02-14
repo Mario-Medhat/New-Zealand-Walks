@@ -67,7 +67,7 @@ namespace NZWalks.API.Repositories
             }
 
             // Sorting if Needed
-            if(string.IsNullOrWhiteSpace(sortBy) == false)
+            if (string.IsNullOrWhiteSpace(sortBy) == false)
             {
                 if (sortBy.Equals("name", StringComparison.OrdinalIgnoreCase))
                 {
@@ -110,8 +110,26 @@ namespace NZWalks.API.Repositories
             existingWalk.Name = updatedWalkDto.Name ?? existingWalk.Name;
             existingWalk.Description = updatedWalkDto.Description ?? existingWalk.Description;
             existingWalk.LengthInKm = updatedWalkDto.LengthInKm ?? existingWalk.LengthInKm;
-            existingWalk.DifficultyId = updatedWalkDto.DifficultyId ?? existingWalk.DifficultyId;
-            existingWalk.RegionId = updatedWalkDto.RegionId ?? existingWalk.RegionId;
+            
+            if(updatedWalkDto.DifficultyId != null && updatedWalkDto.DifficultyId != Guid.Empty)
+            {
+                // Check if the provided DifficultyId exists in the Difficulties table
+                var difficulty = await dbContext.Difficulties.FindAsync(updatedWalkDto.DifficultyId);
+                if (difficulty != null)
+                {
+                    existingWalk.DifficultyId = (Guid)updatedWalkDto.DifficultyId;
+                }
+            }
+            
+            if(updatedWalkDto.RegionId != null && updatedWalkDto.RegionId != Guid.Empty)
+            {
+                // Check if the provided DifficultyId exists in the Difficulties table
+                var region = await dbContext.Regions.FindAsync(updatedWalkDto.RegionId);
+                if (region != null)
+                {
+                    existingWalk.RegionId = (Guid)updatedWalkDto.RegionId;
+                }
+            }
 
             // TODO: use partial update with AutoMapper 
             //mapper.Map(updatedWalk, existingWalk); // AutoMapper doing partial update

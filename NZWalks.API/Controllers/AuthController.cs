@@ -12,11 +12,13 @@ namespace NZWalks.API.Controllers
     {
         private readonly UserManager<IdentityUser> userManager;
         private readonly ITokenRepository tokenRepository;
+        private readonly ILogger<AuthController> logger;
 
-        public AuthController(UserManager<IdentityUser> userManager, ITokenRepository tokenRepository)
+        public AuthController(UserManager<IdentityUser> userManager, ITokenRepository tokenRepository, ILogger<AuthController> logger)
         {
             this.userManager = userManager;
             this.tokenRepository = tokenRepository;
+            this.logger = logger;
         }
 
         // POST: api/Auth/Regiester
@@ -41,9 +43,13 @@ namespace NZWalks.API.Controllers
                     identittResult = await userManager.AddToRolesAsync(identityUser, regiesterRequestDto.Roles);
 
                 if (identittResult.Succeeded)
+                {
+                    logger.LogInformation($"User {regiesterRequestDto.Username} regiestered successfully with roles: {string.Join(", ", regiesterRequestDto.Roles)}");
                     return Ok("User Regiestered! Please login.");
+                }
             }
 
+            logger.LogError($"User {regiesterRequestDto.Username} regiesteration failed. Errors: {string.Join(", ", identittResult.Errors.Select(e => e.Description))}");
             return BadRequest("User Regiesteration failed! Please try again.");
         }
 
@@ -73,6 +79,7 @@ namespace NZWalks.API.Controllers
                         //Roles = roles.ToList()
                     };
 
+                    logger.LogInformation($"User {loginRequestDto.Username} logged in successfully with token: {jwtToken}");
                     return Ok(response);
                 }
                 else
@@ -80,8 +87,6 @@ namespace NZWalks.API.Controllers
             }
             else
                 return BadRequest("Invalid password!");
-
-            return Ok("Something went wrong");
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using NZWalks.API.Models.Domain;
 using NZWalks.API.Models.DTO;
 using NZWalks.API.Repositories;
@@ -13,10 +14,12 @@ namespace NZWalks.API.Controllers
     public class ImagesController : ControllerBase
     {
         private readonly IImageRepository imageRepository;
+        private readonly ILogger logger;
 
-        public ImagesController(IImageRepository imageRepository)
+        public ImagesController(IImageRepository imageRepository, ILogger<ImagesController> logger)
         {
             this.imageRepository = imageRepository;
+            this.logger = logger;
         }
 
         // POST: /api/Images/Upload
@@ -28,7 +31,10 @@ namespace NZWalks.API.Controllers
             ValidateImageUploadRequest(request);
 
             if (!ModelState.IsValid)
+            {
+                logger.LogError("Image upload failed due to validation errors: {Errors}", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
                 return BadRequest(ModelState);
+            }
 
             // TODO: apply mapping from ImageUploadRequestDto to Image using AutoMapper
 
@@ -55,7 +61,7 @@ namespace NZWalks.API.Controllers
 
             // Validate that the request is not null
             if (request == null)
-                throw new ArgumentNullException(nameof(request), "Request cannot be null.");
+                ModelState.AddModelError("file", "Request cannot be null.");
 
             // Validate file type based on extension
             if (!allowedExtensions.Contains(Path.GetExtension(request.File.FileName).ToLower()))
@@ -71,7 +77,7 @@ namespace NZWalks.API.Controllers
 
             // Validate that the file name is provided
             if (string.IsNullOrWhiteSpace(request.FileName))
-                throw new ArgumentException("File name is required.", nameof(request.FileName));
+                ModelState.AddModelError("file", "File name is required.");
         }
 
     }
